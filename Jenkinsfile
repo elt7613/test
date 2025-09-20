@@ -1,6 +1,6 @@
 pipeline {
-  agent any
-  
+  agent { label 'python3' }
+
   stages {
     stage('Checkout') {
       steps { checkout scm }

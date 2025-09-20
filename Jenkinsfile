@@ -2,19 +2,57 @@ pipeline {
     agent any
 
     stages {
-        stage('Build1') {
+        stage('Checkout') {
             steps {
-                echo 'Building...'
+                // Pull code from Git
+                git branch: 'main', url: 'https://github.com/elt7613/test.git'
             }
         }
-        stage('Test') {
+
+        stage('Install Dependencies') {
             steps {
-                echo 'Testing...'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
-        stage('Deploy') {
+
+        stage('Run Make Migrations') {
             steps {
-                echo 'Deploying...'
+                sh '''
+                    . venv/bin/activate
+                    python manage.py makemigrations
+                '''
+            }
+        }
+
+        stage('Run Migrations') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    python manage.py migrate
+                '''
+            }
+        }
+
+        stage('Run Test case') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    python test.py
+                '''
+            }
+        }
+
+        stage('Run Server') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    nohup python manage.py runserver 0.0.0.0:8123 &
+                '''
             }
         }
     }

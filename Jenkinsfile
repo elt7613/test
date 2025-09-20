@@ -1,10 +1,6 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.12'   // official Python image with pip + venv
-        }
-    }
-
+    agent any
+    
     stages {
         stage('Checkout') {
             steps {
@@ -15,7 +11,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh '''
+                bat '''
                     python -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
@@ -26,7 +22,7 @@ pipeline {
 
         stage('Run Make Migrations') {
             steps {
-                sh '''
+                bat '''
                     . venv/bin/activate
                     python manage.py makemigrations
                 '''
@@ -35,7 +31,7 @@ pipeline {
 
         stage('Run Migrations') {
             steps {
-                sh '''
+                bat '''
                     . venv/bin/activate
                     python manage.py migrate
                 '''
@@ -44,7 +40,7 @@ pipeline {
 
         stage('Run Test case') {
             steps {
-                sh '''
+                bat '''
                     . venv/bin/activate
                     python test.py
                 '''

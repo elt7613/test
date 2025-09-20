@@ -1,5 +1,9 @@
 pipeline {
     agent any
+
+    environment {
+        VENV - 'venv'
+    }
     
     stages {
         stage('Checkout') {
@@ -11,48 +15,33 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat '''
-                    python -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
+                bat 'python -m venv %VENV%'
+                bat '%VENV%\\Scripts\\python -m pip install --upgrade pip'
+                bat '%VENV%\\Scripts\\pip install -r requirements.txt'
             }
         }
 
         stage('Run Make Migrations') {
             steps {
-                bat '''
-                    . venv/bin/activate
-                    python manage.py makemigrations
-                '''
+                bat '%VENV%\\Scripts\\python manage.py makemigrations'
             }
         }
 
         stage('Run Migrations') {
             steps {
-                bat '''
-                    . venv/bin/activate
-                    python manage.py migrate
-                '''
+                bat '%VENV%\\Scripts\\python manage.py migrate'
             }
         }
 
         stage('Run Test case') {
             steps {
-                bat '''
-                    . venv/bin/activate
-                    python test.py
-                '''
+                bat '%VENV%\\Scripts\\python test.py'
             }
         }
 
         stage('Run Server') {
             steps {
-                sh '''
-                    . venv/bin/activate
-                    nohup python manage.py runserver 0.0.0.0:8123 &
-                '''
+                sh '%VENV%\\Scripts\\nohup python manage.py runserver 0.0.0.0:8123 &'
             }
         }
     }

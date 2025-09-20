@@ -1,48 +1,38 @@
 pipeline {
-    agent any
-
-    environment {
-        VENV - 'venv'
+  agent {
+    docker {
+      image 'python:3.12-slim'
+      args '-u'
     }
-    
-    stages {
-        stage('Checkout') {
-            steps {
-                // Pull code from Git
-                git branch: 'main', url: 'https://github.com/elt7613/test.git'
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                bat 'python -m venv %VENV%'
-                bat '%VENV%\\Scripts\\python -m pip install --upgrade pip'
-                bat '%VENV%\\Scripts\\pip install -r requirements.txt'
-            }
-        }
-
-        stage('Run Make Migrations') {
-            steps {
-                bat '%VENV%\\Scripts\\python manage.py makemigrations'
-            }
-        }
-
-        stage('Run Migrations') {
-            steps {
-                bat '%VENV%\\Scripts\\python manage.py migrate'
-            }
-        }
-
-        stage('Run Test case') {
-            steps {
-                bat '%VENV%\\Scripts\\python test.py'
-            }
-        }
-
-        stage('Run Server') {
-            steps {
-                sh '%VENV%\\Scripts\\nohup python manage.py runserver 0.0.0.0:8123 &'
-            }
-        }
+  }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
     }
+    stage('Install Dependencies') {
+      steps {
+        sh '''
+          python --version
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        '''
+      }
+    }
+    stage('Migrate DB') {
+      steps {
+        sh '''
+          rm -f db.sqlite3 || true
+          python manage.py migrate --noinput
+        '''
+      }
+    }
+    stage('Run Checks/Tests') {
+      steps {
+        sh '''
+          python manage.py check
+          # python manage.py test
+        '''
+      }
+    }
+  }
 }

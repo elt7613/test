@@ -8,4 +8,4 @@ print("Test 2")
 
 print(3*3+7)
 
-prnt("Test 2 complete")
+print("Test 2 complete")

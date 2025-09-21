@@ -1,59 +1,40 @@
 pipeline {
    agent any
 
+   environment { 
+     PORT = '8000'; 
+     IMAGE = 'test-cicd:latest' 
+   }
+
   stages {
     stage('Checkout') {
       steps { checkout scm }
     }
-    stage('Install Dependencies') {
+    stage('Docker Build') {
       steps {
         sh '''
-          python3 --version
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          docker version
+          docker build -t ${IMAGE} -f Dockerfile .
         '''
       }
     }
-    stage('Migrate DB') {
+    stage('Smoke Test') {
       steps {
         sh '''
-          rm -f db.sqlite3 || true
-          . venv/bin/activate
-          python manage.py migrate --noinput
-        '''
-      }
-    }
-    stage('Run Checks/Tests') {
-      steps {
-        sh '''
-          . venv/bin/activate
-          python manage.py check
-          # python manage.py test
-        '''
-      }
-    }
-    // Optional smoke test with teardown
-    stage('Smoke Test (optional)') {
-      steps {
-        sh '''
-          . venv/bin/activate
-          (python manage.py runserver 0.0.0.0:8000 & echo $! > django.pid)
-          for i in $(seq 1 20); do
+          set -e
+          docker run -d --rm --name test-cicd-smoke -p ${PORT}:${PORT} ${IMAGE}
+          for i in $(seq 1 30); do
             sleep 1
-            curl -fsS http://127.0.0.1:8000/ || continue
-            exit 0
+            if curl -fsS http://127.0.0.1:${PORT}/ >/dev/null 2>&1; then echo "App is healthy"; exit 0; fi
           done
-          echo "Health check failed"; exit 1
+          echo "Smoke test failed"; exit 1
         '''
       }
       post {
         always {
-          sh 'if [ -f django.pid ]; then kill $(cat django.pid) || true; rm -f django.pid; fi'
+          sh 'docker rm -f test-cicd-smoke >/dev/null 2>&1 || true'
         }
       }
     }
-    // stage('Deploy') { steps { ... } }
   }
 }
